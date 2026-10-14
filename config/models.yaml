@@ -1,0 +1,99 @@
+# Contestants. Prices are USD per 1M tokens and drive cost-per-solved-task.
+# Check them against the provider pricing pages before publishing results.
+# API keys are read from the env var named in api_key_env (or from .env).
+models:
+  # --- Anthropic ---------------------------------------------------------
+  # Server-side refusal fallbacks are deliberately NOT enabled: in an eval they would
+  # silently swap in a different model and corrupt the measurement.
+  - name: claude-sonnet-5-5
+    provider: anthropic
+    model: claude-sonnet-5-5
+    api_key_env: ANTHROPIC_API_KEY
+    price: {input: 2.00, output: 10.00}
+    concurrency: 4
+    params:
+      output_config: {effort: medium}   # recommended start for multistep tool use
+
+  - name: claude-haiku-5-5
+    provider: anthropic
+    model: claude-haiku-5-5
+    api_key_env: ANTHROPIC_API_KEY
+    price: {input: 0.10, output: 0.50}
+    concurrency: 4
+    params:
+      output_config: {effort: medium}
+
+  - name: claude-opus-5-5
+    provider: anthropic
+    model: claude-opus-5-5
+    api_key_env: ANTHROPIC_API_KEY
+    price: {input: 4.00, output: 20.00}
+    concurrency: 2
+    params:
+      output_config: {effort: medium}
+
+  # --- Z.ai (OpenAI-compatible endpoint) --------------------------------
+  - name: glm-5.3
+    provider: openai_compat
+    family: zai
+    model: glm-5.3
+    base_url: https://api.z.ai/api/paas/v4/
+    api_key_env: ZAI_API_KEY
+    price: {input: 1.40, output: 4.40}
+    concurrency: 3
+
+  - name: glm-5.3-flash
+    provider: openai_compat
+    family: zai
+    model: glm-5.3-flash
+    base_url: https://api.z.ai/api/paas/v4/
+    api_key_env: ZAI_API_KEY
+    price: {input: 0.15, output: 0.50}
+    concurrency: 3
+
+  - name: glm-4.7-flash
+    provider: openai_compat
+    family: zai
+    model: glm-4.7-flash
+    base_url: https://api.z.ai/api/paas/v4/
+    api_key_env: ZAI_API_KEY
+    price: {input: 0, output: 0}   # free tier
+    concurrency: 1
+
+  - name: glm-4.5-air
+    provider: openai_compat
+    family: zai
+    model: glm-4.5-air
+    base_url: https://api.z.ai/api/paas/v4/
+    api_key_env: ZAI_API_KEY
+    price: {input: 0.20, output: 1.10}
+    concurrency: 3
+
+  # --- Local (optional): `ollama pull qwen3:8b` -------------------------
+  - name: ollama-qwen3-8b
+    provider: openai_compat
+    family: ollama
+    model: qwen3:8b
+    base_url: http://localhost:11434/v1
+    price: {input: 0, output: 0}
+    concurrency: 1
+
+  # --- Offline fakes: test the pipeline with no keys and no cost ---------
+  - name: fake-oracle
+    provider: fake
+    model: oracle
+    price: {input: 1.00, output: 5.00}
+  - name: fake-noisy
+    provider: fake
+    model: noisy
+    price: {input: 0.30, output: 1.50}
+    params: {p_fail: 0.15}
+  - name: fake-sloppy
+    provider: fake
+    model: noisy
+    price: {input: 0.05, output: 0.25}
+    params: {p_fail: 0.35}
+  - name: fake-lazy
+    provider: fake
+    model: lazy
+    price: {input: 0.05, output: 0.25}

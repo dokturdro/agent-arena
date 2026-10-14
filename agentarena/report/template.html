@@ -1,0 +1,362 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgentArena Report</title>
+<style>
+:root {
+  color-scheme: light;
+  --page: #f9f9f7; --surface-1: #fcfcfb; --text-primary: #0b0b0b; --text-secondary: #52514e;
+  --muted: #898781; --grid: #e1e0d9; --axis: #c3c2b7; --border: rgba(11,11,11,0.10);
+  --good: #006300; --bad: #d03b3b; --wash: rgba(42,120,214,0.08);
+  --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a; --s4: #eda100; --s5: #e87ba4; --s6: #008300; --s7: #6250d6; --s8: #e34948;
+  --q0: #f0efec; --q1: #cde2fb; --q2: #9ec5f4; --q3: #6da7ec; --q4: #3987e5; --q5: #256abf; --q6: #184f95;
+  --q-ink-hi: #fcfcfb; --q-ink-lo: #0b0b0b;
+}
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme="light"])) {
+    color-scheme: dark;
+    --page: #0d0d0d; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7;
+    --muted: #898781; --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+    --good: #0ca30c; --bad: #e66767; --wash: rgba(57,135,229,0.12);
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+    --q0: #383835; --q1: #104281; --q2: #184f95; --q3: #1c5cab; --q4: #256abf; --q5: #3987e5; --q6: #6da7ec;
+    --q-ink-hi: #0b0b0b; --q-ink-lo: #f0efec;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page: #0d0d0d; --surface-1: #1a1a19; --text-primary: #f0efec; --text-secondary: #c3c2b7;
+  --muted: #898781; --grid: #2c2c2a; --axis: #383835; --border: rgba(255,255,255,0.10);
+  --good: #0ca30c; --bad: #e66767; --wash: rgba(57,135,229,0.12);
+  --s1: #3987e5; --s2: #d95926; --s3: #199e70; --s4: #c98500; --s5: #d55181; --s6: #008300; --s7: #9085e9; --s8: #e66767;
+  --q0: #383835; --q1: #104281; --q2: #184f95; --q3: #1c5cab; --q4: #256abf; --q5: #3987e5; --q6: #6da7ec;
+    --q-ink-hi: #0b0b0b; --q-ink-lo: #f0efec;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--page); color: var(--text-primary);
+  font: 14px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1180px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; margin: 0 0 4px; font-weight: 650; letter-spacing: -0.01em; }
+h2 { font-size: 17px; margin: 0 0 4px; font-weight: 600; }
+.sub { color: var(--text-secondary); margin: 0 0 12px; font-size: 13px; }
+.meta { color: var(--muted); font-size: 12px; }
+.card { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 20px; margin-top: 20px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-top: 20px; }
+.tile { background: var(--surface-1); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; }
+.tile .label { color: var(--text-secondary); font-size: 12px; }
+.tile .value { font-size: 24px; font-weight: 600; margin-top: 2px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.grid2 > .card { margin-top: 0; }
+@media (max-width: 860px) { .grid2 { grid-template-columns: 1fr; } }
+.scroll { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { padding: 7px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap;
+  font-variant-numeric: tabular-nums; }
+th { color: var(--text-secondary); font-weight: 500; font-size: 12px; }
+th:first-child, td:first-child, th.l, td.l { text-align: left; }
+tr:last-child td { border-bottom: 0; }
+.key { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 8px; vertical-align: -1px; }
+.ci { color: var(--muted); font-size: 11px; }
+.legend { display: flex; flex-wrap: wrap; gap: 14px; font-size: 12px; color: var(--text-secondary); margin: 4px 0 8px; }
+svg text { fill: var(--muted); font-size: 11px; font-family: inherit; }
+svg .lbl { fill: var(--text-secondary); font-size: 12px; }
+.tip { position: fixed; pointer-events: none; background: var(--surface-1); color: var(--text-primary);
+  border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; font-size: 12px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12); display: none; z-index: 10; max-width: 280px; }
+.tip b { font-weight: 600; }
+.controls { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+select { font: inherit; padding: 5px 8px; border-radius: 8px; border: 1px solid var(--axis);
+  background: var(--surface-1); color: var(--text-primary); }
+.samples { max-height: 420px; overflow-y: auto; border: 1px solid var(--grid); border-radius: 8px; }
+.samples button { all: unset; display: flex; gap: 10px; width: 100%; padding: 7px 10px; cursor: pointer;
+  border-bottom: 1px solid var(--grid); font-size: 13px; box-sizing: border-box; }
+.samples button:hover, .samples button:focus-visible { background: var(--wash); }
+.samples button[aria-current="true"] { background: var(--wash); font-weight: 600; }
+.ok { color: var(--good); } .no { color: var(--bad); }
+.trace { display: grid; grid-template-columns: minmax(0, 300px) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 860px) { .trace { grid-template-columns: 1fr; } }
+.step { border-left: 2px solid var(--grid); padding: 2px 0 10px 12px; margin-left: 4px; }
+.step .h { color: var(--muted); font-size: 11px; }
+pre { margin: 4px 0; padding: 8px 10px; background: var(--page); border-radius: 6px; font-size: 12px;
+  white-space: pre-wrap; word-break: break-word; max-height: 220px; overflow: auto; }
+pre.err { border-left: 2px solid var(--bad); }
+.pill { display: inline-block; padding: 1px 8px; border-radius: 99px; border: 1px solid var(--axis); font-size: 11px;
+  color: var(--text-secondary); margin-right: 6px; }
+.method li { margin-bottom: 4px; color: var(--text-secondary); }
+</style>
+</head>
+<body>
+<main>
+  <h1>AgentArena</h1>
+  <p class="sub" id="subtitle"></p>
+  <div class="tiles" id="tiles"></div>
+
+  <section class="card">
+    <h2>Leaderboard</h2>
+    <p class="sub">Bradley-Terry ratings on the Elo scale, fit from pairwise battles on identical task instances.
+      Ranks follow the Arena convention: a model only ranks below another whose 95% interval lies entirely above its own.</p>
+    <div class="scroll"><table id="board"></table></div>
+  </section>
+
+  <div class="grid2" style="margin-top:20px">
+    <section class="card">
+      <h2>Reliability: pass^k</h2>
+      <p class="sub">Chance that <i>all</i> k attempts at the same task succeed. A steep drop means a flaky agent.</p>
+      <div class="legend" id="lg-passk"></div>
+      <div id="passk"></div>
+    </section>
+    <section class="card">
+      <h2>Cost vs success</h2>
+      <p class="sub">Mean cost per sample (log scale) against pass@1. The line connects the Pareto frontier.</p>
+      <div class="legend" id="lg-cost"></div>
+      <div id="cost"></div>
+    </section>
+  </div>
+
+  <section class="card">
+    <h2>Success by task template</h2>
+    <p class="sub">pass@1 per template, averaged over seeds and repeats.</p>
+    <div class="scroll" id="heat"></div>
+  </section>
+
+  <section class="card">
+    <h2>Process metrics</h2>
+    <p class="sub">How the agents got there. Means per sample; recovery is the share of failed tool calls later retried successfully.</p>
+    <div class="scroll"><table id="process"></table></div>
+  </section>
+
+  <section class="card">
+    <h2>Trace viewer</h2>
+    <div class="controls">
+      <select id="f-model" aria-label="Model"></select>
+      <select id="f-template" aria-label="Template"></select>
+      <select id="f-outcome" aria-label="Outcome">
+        <option value="">All outcomes</option><option value="1">Passed</option><option value="0">Failed</option>
+      </select>
+    </div>
+    <div class="trace">
+      <div class="samples" id="sample-list" role="list"></div>
+      <div id="sample-detail"><p class="sub">Select a sample.</p></div>
+    </div>
+  </section>
+
+  <section class="card method">
+    <h2>Method</h2>
+    <ul>
+      <li>Every model runs the same tool-calling scaffold, the same prompts and the same budgets.</li>
+      <li>Tool-use tasks are graded on the final world state, compared with the state produced by replaying gold actions, plus required emails and no stray side effects.</li>
+      <li>Research tasks use a synthetic corpus of fictional companies, so answers cannot come from memorized knowledge. Success requires a correct answer <i>and</i> at least one verbatim quote from a gold document.</li>
+      <li>Confidence intervals are 95%, from a clustered bootstrap over task instances (pass@1) or over battles (ratings).</li>
+    </ul>
+    <p class="meta" id="manifest"></p>
+  </section>
+</main>
+<div class="tip" id="tip"></div>
+
+<script id="data" type="application/json">/*__DATA__*/</script>
+<script>
+const D = JSON.parse(document.getElementById("data").textContent);
+const rows = D.board.rows;
+const models = D.models;  // stable order => stable colors (color follows the entity, not its rank)
+const colorOf = m => models.includes(m) ? `var(--s${(models.indexOf(m) % 8) + 1})` : "var(--muted)";
+const $ = id => document.getElementById(id);
+const fmtPct = v => (v == null || Number.isNaN(v)) ? "–" : `${(v * 100).toFixed(0)}%`;
+const fmtNum = (v, d = 1) => (v == null || Number.isNaN(v)) ? "–" : v.toFixed(d);
+// Two decimals from $1 up, so "$2.87" can't be read as 2,870 with a European thousands separator.
+const fmtUsd = v => (v == null || Number.isNaN(v)) ? "–" : v >= 1 ? `$${v.toFixed(2)}` : v < 0.01 ? `$${v.toFixed(4)}` : `$${v.toFixed(3)}`;
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const key = m => `<span class="key" style="background:${colorOf(m)}"></span>`;
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs = {}, parent) {
+  const e = document.createElementNS(NS, tag);
+  for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+  if (parent) parent.appendChild(e);
+  return e;
+}
+const tip = $("tip");
+function showTip(html, ev) {
+  tip.innerHTML = html; tip.style.display = "block";
+  const x = Math.min(ev.clientX + 14, window.innerWidth - tip.offsetWidth - 8);
+  tip.style.left = `${x}px`; tip.style.top = `${ev.clientY + 14}px`;
+}
+const hideTip = () => { tip.style.display = "none"; };
+function hover(node, html) {
+  node.setAttribute("tabindex", "0");
+  node.addEventListener("mousemove", ev => showTip(html, ev));
+  node.addEventListener("mouseleave", hideTip);
+  node.addEventListener("focus", () => { const r = node.getBoundingClientRect(); showTip(html, {clientX: r.right, clientY: r.top}); });
+  node.addEventListener("blur", hideTip);
+}
+
+// ---- header -----------------------------------------------------------
+const m = D.manifest;
+$("subtitle").textContent = `Run ${m.run_id} · suite “${m.suite.name}” · ${m.created}`;
+const totalCost = rows.reduce((a, r) => a + r.cost_usd, 0);
+const tiles = [
+  ["Models", rows.length], ["Samples", D.samples.length],
+  ["Task instances", new Set(D.samples.map(s => s.task_id)).size], ["Repeats per task", D.board.repeats],
+  ["Total cost", fmtUsd(totalCost)],
+];
+$("tiles").innerHTML = tiles.map(([l, v]) => `<div class="tile"><div class="label">${l}</div><div class="value">${v}</div></div>`).join("");
+$("manifest").textContent = `config ${m.config_hash} · git ${m.git_sha ? m.git_sha.slice(0, 10) : "n/a"} · agentarena ${m.agentarena} · python ${m.python}`;
+
+// ---- leaderboard with inline CI whiskers --------------------------------
+(function board() {
+  const lo = Math.min(...rows.map(r => r.lo)), hi = Math.max(...rows.map(r => r.hi));
+  const pad = Math.max(20, (hi - lo) * 0.08), x0 = lo - pad, x1 = hi + pad, W = 180;
+  const sx = v => 6 + (v - x0) / (x1 - x0) * (W - 12);
+  const kmax = D.board.repeats;
+  const head = `<tr><th>Rank</th><th class="l">Model</th><th>Elo</th><th class="l">95% CI</th>
+    <th>pass@1</th><th>Tool use</th><th>Research</th><th>pass^${kmax}</th><th>Cost / solved</th><th>Samples</th><th>API errors</th></tr>`;
+  const body = rows.map(r => {
+    const p = r.pass1_all, t = r.pass1_tool_use, s = r.pass1_research;
+    const ci = v => `<span class="ci">${fmtPct(v.lo)}–${fmtPct(v.hi)}</span>`;
+    const svg = `<svg width="${W}" height="18" role="img" aria-label="Elo ${r.elo.toFixed(0)}, CI ${r.lo.toFixed(0)} to ${r.hi.toFixed(0)}">
+      <line x1="${sx(r.lo)}" x2="${sx(r.hi)}" y1="9" y2="9" stroke="${colorOf(r.model)}" stroke-width="2" stroke-linecap="round"/>
+      <circle cx="${sx(r.elo)}" cy="9" r="4.5" fill="${colorOf(r.model)}" stroke="var(--surface-1)" stroke-width="2"/></svg>`;
+    return `<tr><td>${r.rank}</td><td class="l">${key(r.model)}${esc(r.model)}</td><td>${r.elo.toFixed(0)}</td>
+      <td class="l">${svg}<span class="ci"> ${r.lo.toFixed(0)}–${r.hi.toFixed(0)}</span></td>
+      <td>${fmtPct(p.mean)} ${ci(p)}</td><td>${fmtPct(t.mean)}</td><td>${fmtPct(s.mean)}</td>
+      <td>${fmtPct(r.pass_hat_k[kmax])}</td><td>${fmtUsd(r.cost_per_solved)}</td><td>${r.samples}</td>
+      <td>${r.excluded_errors || "–"}</td></tr>`;
+  }).join("");
+  const unscored = Object.entries(D.board.unscored || {}).map(([mm, n]) =>
+    `<tr><td>–</td><td class="l">${esc(mm)}</td><td colspan="9" class="l" style="color:var(--muted)">not scored: all ${n} samples hit API errors</td></tr>`).join("");
+  $("board").innerHTML = head + body + unscored;
+})();
+
+function legend(id) { $(id).innerHTML = models.map(mm => `<span>${key(mm)}${esc(mm)}</span>`).join(""); }
+
+// ---- pass^k line chart ------------------------------------------------
+(function passk() {
+  legend("lg-passk");
+  const K = D.board.repeats, W = 520, H = 260, L = 40, R = 16, T = 10, B = 30;
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": "pass^k by k for each model"});
+  const sx = k => K === 1 ? (L + W - R) / 2 : L + (k - 1) / (K - 1) * (W - L - R);
+  const sy = v => T + (1 - v) * (H - T - B);
+  for (const g of [0, 0.25, 0.5, 0.75, 1]) {
+    el("line", {x1: L, x2: W - R, y1: sy(g), y2: sy(g), stroke: g === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1}, svg);
+    el("text", {x: L - 6, y: sy(g) + 4, "text-anchor": "end"}, svg).textContent = `${g * 100}%`;
+  }
+  for (let k = 1; k <= K; k++) el("text", {x: sx(k), y: H - 10, "text-anchor": "middle"}, svg).textContent = `k=${k}`;
+  for (const r of rows) {
+    const pts = Array.from({length: K}, (_, i) => [sx(i + 1), sy(r.pass_hat_k[i + 1] ?? 0)]);
+    el("polyline", {points: pts.map(p => p.join(",")).join(" "), fill: "none", stroke: colorOf(r.model),
+      "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round"}, svg);
+    pts.forEach(([x, y], i) => {
+      el("circle", {cx: x, cy: y, r: 4, fill: colorOf(r.model), stroke: "var(--surface-1)", "stroke-width": 2}, svg);
+      const hit = el("circle", {cx: x, cy: y, r: 12, fill: "transparent"}, svg);
+      hover(hit, `<b>${esc(r.model)}</b><br>pass^${i + 1}: ${fmtPct(r.pass_hat_k[i + 1])}<br>pass@${i + 1}: ${fmtPct(r.pass_at_k[i + 1])}`);
+    });
+  }
+  $("passk").appendChild(svg);
+})();
+
+// ---- cost vs success scatter with Pareto frontier -----------------------
+(function cost() {
+  legend("lg-cost");
+  const W = 520, H = 260, L = 44, R = 20, T = 26, B = 30;
+  const pts = rows.map(r => ({m: r.model, c: Math.max(r.cost_usd / r.samples, 1e-6), p: r.pass1_all.mean}));
+  const lc = pts.map(p => Math.log10(p.c));
+  let c0 = Math.floor(Math.min(...lc)), c1 = Math.ceil(Math.max(...lc));
+  if (c0 === c1) c1 = c0 + 1;
+  const sx = c => L + (Math.log10(c) - c0) / (c1 - c0) * (W - L - R);
+  const sy = v => T + (1 - v) * (H - T - B);
+  const svg = el("svg", {viewBox: `0 0 ${W} ${H}`, width: "100%", role: "img", "aria-label": "Cost per sample versus pass@1"});
+  for (const g of [0, 0.25, 0.5, 0.75, 1]) {
+    el("line", {x1: L, x2: W - R, y1: sy(g), y2: sy(g), stroke: g === 0 ? "var(--axis)" : "var(--grid)", "stroke-width": 1}, svg);
+    el("text", {x: L - 6, y: sy(g) + 4, "text-anchor": "end"}, svg).textContent = `${g * 100}%`;
+  }
+  for (let e = c0; e <= c1; e++) el("text", {x: sx(10 ** e), y: H - 10, "text-anchor": "middle"}, svg).textContent = `$${10 ** e < 1 ? (10 ** e).toPrecision(1) : 10 ** e}`;
+  // Pareto: sorted by cost, keep points that beat every cheaper point on success.
+  const front = []; let best = -1;
+  for (const p of [...pts].sort((a, b) => a.c - b.c)) if (p.p > best) { front.push(p); best = p.p; }
+  if (front.length > 1) el("polyline", {points: front.map(p => `${sx(p.c)},${sy(p.p)}`).join(" "), fill: "none",
+    stroke: "var(--axis)", "stroke-width": 2, "stroke-linejoin": "round"}, svg);
+  for (const p of pts) {
+    el("circle", {cx: sx(p.c), cy: sy(p.p), r: 5, fill: colorOf(p.m), stroke: "var(--surface-1)", "stroke-width": 2}, svg);
+    const right = sx(p.c) < W - 120;
+    el("text", {x: sx(p.c) + (right ? 9 : -9), y: sy(p.p) - 7, class: "lbl", "text-anchor": right ? "start" : "end"}, svg).textContent = p.m;
+    const hit = el("circle", {cx: sx(p.c), cy: sy(p.p), r: 13, fill: "transparent"}, svg);
+    hover(hit, `<b>${esc(p.m)}</b><br>pass@1: ${fmtPct(p.p)}<br>cost / sample: ${fmtUsd(p.c)}${front.includes(p) ? "<br>on the Pareto frontier" : ""}`);
+  }
+  $("cost").appendChild(svg);
+})();
+
+// ---- heatmap ------------------------------------------------------------
+(function heat() {
+  const ts = D.board.templates;
+  const bucket = v => v == null || Number.isNaN(v) ? "q0" : `q${Math.min(6, Math.max(1, Math.ceil(v * 6)))}`;
+  const ink = v => v != null && v > 0.6 ? "var(--q-ink-hi)" : "var(--q-ink-lo)";
+  let html = `<table><tr><th class="l">Template</th>${rows.map(r => `<th>${key(r.model)}${esc(r.model)}</th>`).join("")}</tr>`;
+  let lastDomain = null;
+  for (const t of ts) {
+    if (t.domain !== lastDomain) {
+      html += `<tr><td class="l" colspan="${rows.length + 1}" style="color:var(--muted);font-size:11px;padding-top:12px">${t.domain === "tool_use" ? "TOOL USE" : "RESEARCH"}</td></tr>`;
+      lastDomain = t.domain;
+    }
+    html += `<tr><td class="l">${esc(t.template)}</td>` + rows.map(r => {
+      const v = D.board.heatmap[r.model][t.template];
+      return `<td style="padding:2px 1px"><div data-tip="${esc(r.model)}|${esc(t.template)}|${v}" style="background:var(--${bucket(v)});color:${ink(v)};border-radius:4px;padding:5px 8px;text-align:center">${fmtPct(v)}</div></td>`;
+    }).join("") + "</tr>";
+  }
+  $("heat").innerHTML = html + "</table>";
+  $("heat").querySelectorAll("[data-tip]").forEach(n => {
+    const [mm, t, v] = n.dataset.tip.split("|");
+    hover(n, `<b>${mm}</b><br>${t}<br>pass@1: ${fmtPct(parseFloat(v))}`);
+  });
+})();
+
+// ---- process metrics ----------------------------------------------------
+(function proc() {
+  const cols = [["Steps", r => fmtNum(r.mean_steps)], ["Tool calls", r => fmtNum(r.mean_tool_calls)],
+    ["Invalid call rate", r => fmtPct(r.mean_invalid_call_rate)], ["Redundant calls", r => fmtNum(r.mean_redundant_calls, 2)],
+    ["Recovery", r => fmtPct(r.mean_recovery_rate)], ["Looped", r => fmtPct(r.mean_looped)],
+    ["Budget hit", r => fmtPct(r.mean_budget_exhausted)], ["Errors", r => fmtPct(r.mean_errored)],
+    ["Citation precision", r => fmtPct(r.citation_precision)], ["Gold-doc recall", r => fmtPct(r.gold_recall)],
+    ["Tokens in / out", r => `${fmtNum(r.mean_input_tokens / 1000)}K / ${fmtNum(r.mean_output_tokens / 1000)}K`],
+    ["Latency / turn", r => Number.isNaN(r.mean_mean_turn_latency_s) || r.mean_mean_turn_latency_s == null ? "–" : `${fmtNum(r.mean_mean_turn_latency_s)}s`]];
+  if (rows.some(r => r.judge_rubric != null)) cols.push(["Judge rubric (1–5)", r => fmtNum(r.judge_rubric, 2)]);
+  $("process").innerHTML = `<tr><th class="l">Model</th>${cols.map(c => `<th>${c[0]}</th>`).join("")}</tr>` +
+    rows.map(r => `<tr><td class="l">${key(r.model)}${esc(r.model)}</td>${cols.map(c => `<td>${c[1](r)}</td>`).join("")}</tr>`).join("");
+})();
+
+// ---- trace viewer -------------------------------------------------------
+(function traces() {
+  const fm = $("f-model"), ft = $("f-template"), fo = $("f-outcome");
+  const allModels = [...new Set(D.samples.map(s => s.model))].sort();
+  fm.innerHTML = `<option value="">All models</option>` + allModels.map(x => `<option>${esc(x)}</option>`).join("");
+  ft.innerHTML = `<option value="">All templates</option>` + D.board.templates.map(t => `<option>${esc(t.template)}</option>`).join("");
+  let current = null;
+  function list() {
+    const items = D.samples.filter(s => (!fm.value || s.model === fm.value) && (!ft.value || s.template === ft.value)
+      && (!fo.value || String(+s.success) === fo.value));
+    $("sample-list").innerHTML = items.map((s, i) => `<button role="listitem" data-i="${D.samples.indexOf(s)}" aria-current="${D.samples.indexOf(s) === current}">
+      <span class="${s.success ? "ok" : "no"}">${s.success ? "✓" : "✗"}</span>
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis">${key(s.model)}${esc(s.model)} · ${esc(s.task_id)} · r${s.repeat}</span></button>`).join("")
+      || `<p class="sub" style="padding:10px">No samples match.</p>`;
+    $("sample-list").querySelectorAll("button").forEach(b => b.addEventListener("click", () => { current = +b.dataset.i; show(D.samples[current]); list(); }));
+  }
+  function show(s) {
+    const d = s.details || {};
+    const checks = d.checks ? Object.entries(d.checks).map(([k, v]) => `<span class="pill"><span class="${v ? "ok" : "no"}">${v ? "✓" : "✗"}</span> ${esc(k)}</span>`).join("") : "";
+    const research = "correct" in d ? `<p>Answer: <b>${esc(d.answer)}</b> · expected <b>${esc(d.expected)}</b> · citation precision ${fmtPct(d.citation_precision)} · gold recall ${fmtPct(d.gold_recall)}</p>` : "";
+    const steps = s.steps.map(st => `<div class="step"><div class="h">step ${st.index + 1} · ${st.in}/${st.out} tok · ${st.latency.toFixed(1)}s${st.cached ? " · cached" : ""}</div>
+      ${st.text ? `<pre>${esc(st.text)}</pre>` : ""}
+      ${st.calls.map(c => `<pre>→ ${esc(c.name)}(${esc(JSON.stringify(c.arguments))})</pre>
+        ${c.result ? `<pre class="${c.result.is_error ? "err" : ""}">${esc(c.result.content)}</pre>` : ""}`).join("")}</div>`).join("");
+    $("sample-detail").innerHTML = `<h2>${esc(s.model)} · ${esc(s.task_id)} · repeat ${s.repeat}</h2>
+      <p class="sub">${esc(s.prompt)}</p>
+      <p><span class="pill"><span class="${s.success ? "ok" : "no"}">${s.success ? "passed" : "failed"}</span></span>
+         <span class="pill">score ${fmtNum(s.score, 2)}</span><span class="pill">stop: ${esc(s.stop_reason)}</span>
+         <span class="pill">${fmtUsd(s.cost)}</span>${s.error ? `<span class="pill no">${esc(s.error)}</span>` : ""}</p>
+      ${checks ? `<p>${checks}</p>` : ""}${research}${steps || `<p class="sub">No steps recorded.</p>`}`;
+  }
+  [fm, ft, fo].forEach(x => x.addEventListener("change", list));
+  list();
+})();
+</script>
+</body>
+</html>

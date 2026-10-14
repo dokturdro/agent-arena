@@ -1,0 +1,7 @@
+# Cheap sanity check: a few templates from each domain, one seed, two repeats.
+name: smoke
+templates: [buy_cheapest_in_stock, schedule_earliest_slot, reply_with_order_total,
+            founding_year, acquirer_ceo, corrected_ceo]
+seeds: [1]
+repeats: 2
+budget: {max_steps: 12, max_tokens: 60000, max_output_tokens: 4096, timeout_s: 180}
