@@ -133,7 +133,7 @@ class ScheduleEarliestSlot(ToolUseTask):
                 break
         else:  # every day free at 09:00; block the first half hour so the answer isn't trivial
             date = next(d for d in DATES if w.earliest_free(d, self.dur) == 9 * 60)
-            w._add_event("Standup", date, 9 * 60, 9 * 60 + 30)
+            w.add_event("Standup", date, 9 * 60, 9 * 60 + 30)
             start = w.earliest_free(date, self.dur)
         self.date, self.start = date, start
         self.prompt = (

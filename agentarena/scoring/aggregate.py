@@ -5,6 +5,7 @@ from __future__ import annotations
 import itertools
 import math
 from collections import defaultdict
+from collections.abc import Iterator
 from typing import Any
 
 import numpy as np
@@ -19,27 +20,35 @@ def _nanmean(xs: list[float | None]) -> float:
     return float(np.mean(xs)) if xs else float("nan")
 
 
-def make_battles(
-    records: list[SampleRecord], judged: dict[tuple[str, int, str, str], float] | None = None
-) -> list[Battle]:
-    """Pair models on the same (task instance, repeat). Success decides; if both
-    succeed, partial-credit score decides; a pairwise judge verdict (if present)
-    breaks remaining ties."""
-    judged = judged or {}
+def paired_samples(records: list[SampleRecord]) -> Iterator[tuple[SampleRecord, SampleRecord]]:
+    """Every pair of models that attempted the same (task instance, repeat), in model-name order."""
     by_slot: dict[tuple[str, int], dict[str, SampleRecord]] = defaultdict(dict)
     for r in records:
         by_slot[(r.task_id, r.repeat)][r.model] = r
-    battles = []
-    for (task_id, rep), slot in by_slot.items():
+    for slot in by_slot.values():
         for a, b in itertools.combinations(sorted(slot), 2):
-            ra, rb = slot[a], slot[b]
-            if ra.outcome.success != rb.outcome.success:
-                out = 1.0 if ra.outcome.success else 0.0
-            elif abs(ra.outcome.score - rb.outcome.score) > 1e-9:
-                out = 1.0 if ra.outcome.score > rb.outcome.score else 0.0
-            else:
-                out = judged.get((task_id, rep, a, b), 0.5)
-            battles.append(Battle(a, b, out))
+            yield slot[a], slot[b]
+
+
+def is_tie(a: SampleRecord, b: SampleRecord) -> bool:
+    return a.outcome.success == b.outcome.success and abs(a.outcome.score - b.outcome.score) <= 1e-9
+
+
+def make_battles(
+    records: list[SampleRecord], judged: dict[tuple[str, int, str, str], float] | None = None
+) -> list[Battle]:
+    """Success decides; if both succeed, partial-credit score decides; a pairwise
+    judge verdict (if present) breaks remaining ties."""
+    judged = judged or {}
+    battles = []
+    for a, b in paired_samples(records):
+        if is_tie(a, b):
+            out = judged.get((a.task_id, a.repeat, a.model, b.model), 0.5)
+        elif a.outcome.success != b.outcome.success:
+            out = 1.0 if a.outcome.success else 0.0
+        else:
+            out = 1.0 if a.outcome.score > b.outcome.score else 0.0
+        battles.append(Battle(a.model, b.model, out))
     return battles
 
 

@@ -114,8 +114,7 @@ class LookalikeHQ(ResearchTask):
         a, b = self.cos[0], self.cos[-1]
         if a.hq == b.hq:
             b.hq = next(c for c in sorted({x.hq for x in self.cos} | {"Eastholm", "Velmora"}) if c != a.hq)
-            self.corpus.docs.clear()
-            self.corpus._write_docs()
+            self.corpus.write_docs()
         co = self.rng.choice([a, b])
         other = b if co is a else a
         self.question = f"In which city is {co.name} headquartered?"
@@ -175,8 +174,7 @@ class YearsBetween(ResearchTask):
         a, b = self.rng.sample(self.cos, 2)
         if a.founded == b.founded:
             b.founded += 3
-            self.corpus.docs.clear()
-            self.corpus._write_docs()
+            self.corpus.write_docs()
         old, new = (a, b) if a.founded < b.founded else (b, a)
         self.question = f"How many years after {old.name} was {new.name} founded?"
         self.answer = new.founded - old.founded

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from typing import Any, Callable
 
 import jsonschema
@@ -43,10 +43,6 @@ class Environment:
     state: Any = None
     # Set by a terminal tool such as ``submit_answer``; ends the episode.
     submission: dict[str, Any] | None = None
-    _by_name: dict[str, Tool] = field(init=False, repr=False)
-
-    def __post_init__(self) -> None:
-        self._by_name = {t.name: t for t in self.tools}
 
     def specs(self) -> list[dict[str, Any]]:
         return [t.spec() for t in self.tools]
@@ -57,7 +53,7 @@ class Environment:
                 call_id=call.id, name=call.name, content=f"ERROR: {msg}", is_error=True, error_kind=kind
             )
 
-        tool = self._by_name.get(call.name)
+        tool = next((t for t in self.tools if t.name == call.name), None)
         if tool is None:
             return err(f"unknown tool '{call.name}'", "unknown_tool")
         if call.raw_arguments is not None:

@@ -75,11 +75,11 @@ class World:
                 dur = rng.choice([30, 60, 90])
                 if t + dur > 17 * 60:
                     break
-                w._add_event(rng.choice(["Standup", "1:1", "Design review", "Lunch", "Planning"]), date, t, t + dur)
+                w.add_event(rng.choice(["Standup", "1:1", "Design review", "Lunch", "Planning"]), date, t, t + dur)
                 t += dur
         return w
 
-    def _add_event(self, title: str, date: str, start: int, end: int) -> dict[str, Any]:
+    def add_event(self, title: str, date: str, start: int, end: int) -> dict[str, Any]:
         eid = f"EV-{self.next_event}"
         self.next_event += 1
         ev = {"event_id": eid, "title": title, "date": date, "start": to_hhmm(start), "end": to_hhmm(end)}
@@ -188,7 +188,7 @@ class World:
 
         def create_event(title: str, date: str, start: str, end: str) -> dict[str, Any]:
             s, e = _check_slot(date, start, end)
-            return self._add_event(title, date, s, e)
+            return self.add_event(title, date, s, e)
 
         def update_event(event_id: str, date: str, start: str, end: str) -> dict[str, Any]:
             ev = self.events.get(event_id)

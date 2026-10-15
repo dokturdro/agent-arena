@@ -50,6 +50,7 @@ class Company:
 class Corpus:
     companies: dict[str, Company] = field(default_factory=dict)
     docs: dict[str, dict[str, str]] = field(default_factory=dict)  # id -> {title, date, text}
+    gold: dict[str, dict[str, str]] = field(default_factory=dict)  # company -> {doc kind: doc id}
 
     @classmethod
     def generate(cls, rng: random.Random) -> Corpus:
@@ -74,10 +75,13 @@ class Corpus:
         cos[1].acquired_by = cos[2].name
         cos[3].acquired_by = cos[4].name
         cos[5].former_ceo, cos[5].ceo = cos[5].ceo, people.pop()  # superseded by a correction
-        c._write_docs()
+        c.write_docs()
         return c
 
-    def _write_docs(self) -> None:
+    def write_docs(self) -> None:
+        """(Re)build the documents from the company facts. Call again after editing a fact."""
+        self.docs.clear()
+        self.gold.clear()
         n = 0
 
         def add(title: str, date: str, text: str) -> str:
@@ -87,7 +91,6 @@ class Corpus:
             self.docs[doc_id] = {"title": title, "date": date, "text": text}
             return doc_id
 
-        self.gold: dict[str, dict[str, str]] = {}
         for co in self.companies.values():
             g = self.gold.setdefault(co.name, {})
             g["profile"] = add(
@@ -170,6 +173,5 @@ class Corpus:
 
     def env(self) -> Environment:
         env = Environment(tools=[], state=self)
-        env.tools = self.tools(env)
-        env.__post_init__()
+        env.tools = self.tools(env)  # submit_answer needs the env it reports to
         return env

@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import asyncio
-import itertools
 import json
 import webbrowser
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 from typing import Annotated, Any
@@ -18,6 +16,7 @@ from agentarena.agents import ProviderError, make_model
 from agentarena.config import ROOT, load_models, load_suite
 from agentarena.report import build_report
 from agentarena.schemas import SampleRecord
+from agentarena.scoring.aggregate import is_tie, leaderboard, paired_samples
 from agentarena.scoring.judge import cohen_kappa, format_answer, pairwise_judge, rubric_judge
 from agentarena.store import RunStore
 from agentarena.tasks import REGISTRY
@@ -80,8 +79,6 @@ def print_progress(rec: SampleRecord, done: int, total: int) -> None:
 
 
 def print_board(store: RunStore) -> None:
-    from agentarena.scoring.aggregate import leaderboard
-
     board = leaderboard(store.load())
     typer.echo(f"\n{'rank':<5}{'model':<22}{'elo':>6}{'95% CI':>14}{'pass@1':>9}{'tool':>7}{'resch':>7}"
                f"{'pass^k':>8}{'$/solved':>10}{'n':>6}{'errors':>8}")
@@ -196,14 +193,7 @@ def judge(
     async def main() -> None:
         jobs = [do_rubric(r) for r in records]
         if pairwise:
-            slots: dict[tuple[str, int], dict[str, SampleRecord]] = defaultdict(dict)
-            for r in records:
-                slots[(r.task_id, r.repeat)][r.model] = r
-            for slot in slots.values():
-                for x, y in itertools.combinations(sorted(slot), 2):
-                    a, b = slot[x], slot[y]
-                    if a.outcome.success == b.outcome.success and abs(a.outcome.score - b.outcome.score) < 1e-9:
-                        jobs.append(do_pair(a, b))
+            jobs += [do_pair(a, b) for a, b in paired_samples(records) if is_tie(a, b)]
         await asyncio.gather(*jobs)
 
     asyncio.run(main())

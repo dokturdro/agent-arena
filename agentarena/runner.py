@@ -16,10 +16,19 @@ from agentarena.schemas import SampleRecord, Score, Trajectory
 from agentarena.scoring.trajectory import trajectory_metrics
 from agentarena.store import RunStore
 from agentarena.tasks import Task, build_tasks
+from agentarena.tools import Environment
 
 
 def sample_id(model: str, task: Task, repeat: int) -> str:
     return f"{model}|{task.task_id}|r{repeat}"
+
+
+def _safe_score(task: Task, env: Environment, traj: Trajectory) -> Score:
+    """A crashing grader fails the sample instead of the whole run."""
+    try:
+        return task.score(env, traj)
+    except Exception as e:  # noqa: BLE001
+        return Score(success=False, score=0.0, details={"grader_error": f"{type(e).__name__}: {e}"})
 
 
 async def run_sample(
@@ -43,10 +52,6 @@ async def run_sample(
         traj.stop_reason, traj.error = "error", f"{type(e).__name__}: {e}"
     traj.wall_time_s = time.perf_counter() - t0
 
-    try:
-        outcome = task.score(env, traj)
-    except Exception as e:  # noqa: BLE001
-        outcome = Score(success=False, score=0.0, details={"grader_error": f"{type(e).__name__}: {e}"})
     return SampleRecord(
         run_id=run_id,
         sample_id=sample_id(model.name, task, repeat),
@@ -58,7 +63,7 @@ async def run_sample(
         repeat=repeat,
         prompt=task.prompt,
         trajectory=traj,
-        outcome=outcome,
+        outcome=_safe_score(task, env, traj),
         metrics=trajectory_metrics(traj),
         cost_usd=model.cfg.cost(traj.usage.input_tokens, traj.usage.output_tokens),
     )
@@ -76,11 +81,7 @@ def rescore(rec: SampleRecord) -> SampleRecord:
     env = task.build_env()
     for call in rec.trajectory.tool_calls:
         env.execute(call)
-    try:
-        outcome = task.score(env, rec.trajectory)
-    except Exception as e:  # noqa: BLE001
-        outcome = Score(success=False, score=0.0, details={"grader_error": f"{type(e).__name__}: {e}"})
-    return rec.model_copy(update={"outcome": outcome, "prompt": task.prompt})
+    return rec.model_copy(update={"outcome": _safe_score(task, env, rec.trajectory), "prompt": task.prompt})
 
 
 async def run_suite(
