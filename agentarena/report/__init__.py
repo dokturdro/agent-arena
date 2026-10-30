@@ -1,9 +1,10 @@
-"""Static, self-contained HTML report (no server, data embedded as JSON)."""
+"""Static HTML report (no server): report.html (the template, unchanged) + report-data.js (the data)."""
 
 from __future__ import annotations
 
 import json
 import math
+import shutil
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ from agentarena.scoring.aggregate import leaderboard
 from agentarena.store import RunStore
 
 TEMPLATE = Path(__file__).with_name("template.html")
+DATA_FILE = "report-data.js"  # must match the <script src> in template.html
 MAX_RESULT_CHARS = 1500
 
 
@@ -68,8 +70,9 @@ def build_report(store: RunStore, out: Path | None = None) -> Path:
         "board": board,
         "samples": [_sample_view(r) for r in sorted(records, key=lambda r: (r.model, r.task_id, r.repeat))],
     }
-    payload = json.dumps(_clean(data), default=str).replace("</", "<\\/")
-    html = TEMPLATE.read_text(encoding="utf-8").replace("/*__DATA__*/", payload)
     out = out or store.dir / "report.html"
-    out.write_text(html, encoding="utf-8")
+    # A <script src> (unlike fetch) also loads over file://, so the report opens straight from disk.
+    data_js = f"const D = {json.dumps(_clean(data), default=str, indent=1)};\n"
+    out.with_name(DATA_FILE).write_text(data_js, encoding="utf-8")
+    shutil.copyfile(TEMPLATE, out)
     return out

@@ -155,9 +155,8 @@ pre.err { border-left: 2px solid var(--bad); }
 </main>
 <div class="tip" id="tip"></div>
 
-<script id="data" type="application/json">/*__DATA__*/</script>
+<script src="report-data.js"></script>  <!-- defines D; written next to this file by build_report -->
 <script>
-const D = JSON.parse(document.getElementById("data").textContent);
 const rows = D.board.rows;
 const models = D.models;  // stable order => stable colors (color follows the entity, not its rank)
 const colorOf = m => models.includes(m) ? `var(--s${(models.indexOf(m) % 8) + 1})` : "var(--muted)";

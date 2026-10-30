@@ -39,8 +39,9 @@ def test_end_to_end_run_report_and_resume(tmp_path):
     asyncio.run(run_suite(SUITE, FAKES, run_dir, None))
     assert len({r.sample_id for r in store.load()}) == len(recs) == len(store.load())
 
-    html = build_report(store).read_text(encoding="utf-8")
-    assert "fake-oracle" in html and "/*__DATA__*/" not in html
+    report = build_report(store)
+    assert 'src="report-data.js"' in report.read_text(encoding="utf-8")
+    assert "fake-oracle" in report.with_name("report-data.js").read_text(encoding="utf-8")
 
 
 def test_api_errors_are_excluded_and_retried(tmp_path):
